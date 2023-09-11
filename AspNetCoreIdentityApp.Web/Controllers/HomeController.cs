@@ -3,6 +3,7 @@ using AspNetCoreIdentityApp.Web.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using AspNetCoreIdentityApp.Web.Extensions;
 
 namespace AspNetCoreIdentityApp.Web.Controllers
 {
@@ -11,13 +12,15 @@ namespace AspNetCoreIdentityApp.Web.Controllers
         private readonly ILogger<HomeController> _logger;
 
         private readonly UserManager<AppUser> _userManager;
-		public HomeController(ILogger<HomeController> logger, UserManager<AppUser> userManager)
-		{
-			_logger = logger;
-			_userManager = userManager;
-		}
+        private readonly SignInManager<AppUser> _signInManager;
+        public HomeController(ILogger<HomeController> logger, UserManager<AppUser> userManager, SignInManager<AppUser> signInManager)
+        {
+            _logger = logger;
+            _userManager = userManager;
+            _signInManager = signInManager;
+        }
 
-		public IActionResult Index()
+        public IActionResult Index()
         {
             return View();
         }
@@ -29,6 +32,37 @@ namespace AspNetCoreIdentityApp.Web.Controllers
         public IActionResult SignUp()
         {
 
+            return View();
+        }
+        public IActionResult SignIn()
+        {
+            return View();
+        }
+        [HttpPost]
+        public async Task<ActionResult> SignIn(SignInViewModel model, string? returnUrl = null)
+        {
+            returnUrl = returnUrl ?? Url.Action("Index", "Home");
+
+            var hasUser = await _userManager.FindByEmailAsync(model.Email);
+            
+            if(hasUser == null)
+            {
+                ModelState.AddModelError(string.Empty, "Email veya şifre yanlış");
+                return View();
+            }
+            var signInResult = await _signInManager.PasswordSignInAsync(hasUser, model.Password, model.RememberMe, true);
+
+            if (signInResult.Succeeded)
+            {
+                return Redirect(returnUrl);
+            }
+
+            if (signInResult.IsLockedOut)
+            {
+                ModelState.AddModelErrorList(new List<string>() { "3 dakika boyunca giriş yapamazsınız." });
+                return View();
+            }
+            ModelState.AddModelErrorList(new List<string>() { $"Email veya şifre yanlış." , $"Kalan başarısız giriş sayısı : {3 - await _userManager.GetAccessFailedCountAsync(hasUser)})" });
             return View();
         }
 
@@ -49,11 +83,7 @@ namespace AspNetCoreIdentityApp.Web.Controllers
                 return RedirectToAction(nameof(HomeController.SignUp));
             }
 
-            foreach(IdentityError item in identityResult.Errors)
-            {
-                ModelState.AddModelError(string.Empty, item.Description);
-            }
-
+            ModelState.AddModelErrorList(identityResult.Errors.Select(x => x.Description).ToList());
             return View();
 		}
 

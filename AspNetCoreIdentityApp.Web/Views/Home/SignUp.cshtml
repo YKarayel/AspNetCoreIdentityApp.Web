@@ -2,10 +2,13 @@
 	ViewData["Title"] = "SignUp";
 }
 @model SignUpViewModel
-
+@section Scripts
+{
+	@await Html.PartialAsync("_ValidationScriptsPartial")
+}
 <div class="row">
 	<div class="col-md-6 offset-md-3">
-		<h2>Kullanıcı Kayıt Formu</h2>
+		<h2>Kullanıcı Kayıt</h2>
 		@if (TempData["SuccessMessage"]!=null)
 		{
 			<div class="alert alert-info" role="alert">
