@@ -1,5 +1,8 @@
 using AspNetCoreIdentityApp.Web.Extensions;
 using AspNetCoreIdentityApp.Web.Models;
+using AspNetCoreIdentityApp.Web.OptionsModels;
+using AspNetCoreIdentityApp.Web.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,7 +15,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlCon"));
 });
 
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddIdentityWithExt();
+builder.Services.AddScoped<IEmailService, EmailServices>();
 
 builder.Services.ConfigureApplicationCookie(opt =>
 {
@@ -24,6 +29,7 @@ builder.Services.ConfigureApplicationCookie(opt =>
     opt.ExpireTimeSpan = TimeSpan.FromDays(60);
     opt.SlidingExpiration = true;
 });
+
 
 var app = builder.Build();
 
@@ -40,7 +46,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
